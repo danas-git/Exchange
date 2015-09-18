@@ -1,0 +1,75 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E8EAF6"
+    android:orientation="vertical" >
+
+    <EditText
+        android:id="@+id/user_email"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textEmailAddress"
+        android:layout_marginTop="16dp"
+        android:hint="Email" >
+
+        <requestFocus android:layout_width="match_parent" />
+
+    </EditText>
+
+    <EditText
+        android:id="@+id/user_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPassword" 
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:hint="Password"/>
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="match_parent"
+        android:layout_margin="8dp"
+        android:layout_height="wrap_content"
+        android:text="Sign In" 
+        android:background="#3F51B5"
+        android:textColor="#E8EAF6"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:divider="@drawable/vertical_divider" 
+        android:dividerPadding="2dp"
+        android:showDividers="middle"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/user_register_new"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="8dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:gravity="end"
+            android:text="@string/register"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
+            android:id="@+id/user_forgot_pwd"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:text="@string/forgot"
+            android:layout_weight="1"
+            android:textAppearance="?android:attr/textAppearanceSmall" 
+            android:clickable="true"
+            android:layout_marginLeft="8dp"/>
+
+    </LinearLayout>
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/google_sign_in"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"/>
+
+</LinearLayout>

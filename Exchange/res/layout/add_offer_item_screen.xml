@@ -1,0 +1,157 @@
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E8EAF6"
+    android:orientation="vertical" >
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" 
+                
+                    android:layout_margin="8dp">
+
+                <ImageView
+                    android:id="@+id/additem_imageViewUpload"
+                    android:layout_width="300dp"
+                    android:layout_height="300dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_centerInParent="true"
+                    android:background="#ffffff"
+                    android:scaleType="fitXY"
+                    android:src="@android:drawable/ic_menu_gallery" />
+
+                <ImageButton
+                    android:id="@+id/additem_imageButtonUpload"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBottom="@+id/additem_imageViewUpload"
+                    android:layout_alignRight="@+id/additem_imageViewUpload"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/camera_icon" />
+            </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="8dp"
+                android:background="#ffffff"
+                android:orientation="vertical" >
+
+                <EditText
+                    android:id="@+id/additem_book_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:ems="10"
+                    android:hint="Item Name(*)"
+                    android:inputType="textMultiLine" >
+
+                    <requestFocus android:layout_width="match_parent" />
+                </EditText>
+
+                <EditText
+                    android:id="@+id/additem_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:ems="10"
+                    android:hint="Description"
+                    android:inputType="textMultiLine" >
+                </EditText>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="8dp"
+                android:background="#ffffff"
+                android:orientation="vertical" >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="8dp"
+                    android:background="#E8EAF6"
+                    android:orientation="vertical"
+                    android:padding="8dp" >
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxLength="20"
+                        android:text="Category : "
+                        android:textAlignment="center"
+                        android:textColor="#3F51B5"
+                        android:textSize="18sp"
+                        android:typeface="normal" />
+
+                    <Spinner
+                        android:id="@+id/additem_spinner_genre"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:entries="@array/item_category"
+                        android:prompt="@string/item_category_prompt" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="8dp"
+                    android:background="#E8EAF6"
+                    android:orientation="vertical"
+                    android:padding="8dp" >
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxLength="20"
+                        android:text="Offer Type : "
+                        android:textAlignment="center"
+                        android:textColor="#3F51B5"
+                        android:textSize="18sp"
+                        android:typeface="normal" />
+
+                    <RadioGroup
+                        android:id="@+id/additem_radio_offertype"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" 
+                        android:checkedButton="@+id/additem_radio_exchange">
+
+                        <RadioButton
+                            android:id="@+id/additem_radio_exchange"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Exchange" />
+
+                        <RadioButton
+                            android:id="@+id/additem_radio_giveaway"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Give-Away" />
+                    </RadioGroup>
+                </LinearLayout>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/additem_button_add"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:background="#3F51B5"
+                android:text="Add Offer"
+                android:textColor="#E8EAF6" />
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>
