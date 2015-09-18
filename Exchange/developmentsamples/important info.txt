@@ -1,0 +1,7 @@
+google api ids:
+Project ID: exchange-1987 Project Number: 618979026784
+
+debug keytool:
+SHA1: 08:D9:70:C7:CE:1E:42:BD:F3:D3:9E:EF:F9:B2:7C:C1:35:90:A0:9E
+
+OAUTH client id : 618979026784-3tvh3kkth3gm9952rqcu1qmpfdu0boah.apps.googleusercontent.com
