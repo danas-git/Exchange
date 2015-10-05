@@ -331,9 +331,16 @@ OnConnectionFailedListener,CommonDialogListener {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		// TODO Auto-generated method stub
+		Log.d("dhana","came to activity onresult" + requestCode);
+
 		super.onActivityResult(requestCode, resultCode, data);
 		
 		switch (requestCode) {
+		case 5:
+			if(resultCode == RESULT_OK){
+				Log.d("dhana","forcamera");
+				break;
+			}
         case RC_SIGN_IN:
             if (resultCode == RESULT_OK) {
                 // If the error resolution was successful we should continue
@@ -409,10 +416,18 @@ OnConnectionFailedListener,CommonDialogListener {
 		
 		editor.putString("loggedin", "true");
 		editor.commit();
+
+		Log.d("dhana", "onconnected2:");
 		signinItem.setEnabled(true);
 		signinItem.setTitle(R.string.sign_out);
+
+		Log.d("dhana", "onconnected3:");
 		Person currentUser = Plus.PeopleApi.getCurrentPerson(googleApiClient);
+
+		Log.d("dhana", "onconnected4:");
 		String displayname= String.format("Signed in as", currentUser.getDisplayName());
+
+		Log.d("dhana", "onconnected5:");
 		
 		Log.d("dhana", currentUser.getDisplayName() + Plus.AccountApi.getAccountName(googleApiClient));
 		
@@ -421,8 +436,12 @@ OnConnectionFailedListener,CommonDialogListener {
 		/*if the onconnected is called from login fragment then load the mainpagelistfragment
 		 * Else onconnected is called due to orientation change and hence current fragment 
 		 * is retained*/
+
+		Log.d("dhana", "onconnected6:");
 		if(signInProgressDialog.isShowing()){
 			signInProgressDialog.dismiss();
+
+			Log.d("dhana", "onconnected7:");
 
 			android.app.FragmentManager fragmentManager=getFragmentManager();
 			FragmentTransaction fragmentTransaction=fragmentManager.beginTransaction();
@@ -430,6 +449,8 @@ OnConnectionFailedListener,CommonDialogListener {
 			fragmentTransaction.replace(R.id.content_frame, fragment);
 			fragmentTransaction.commit();
 		}
+
+		Log.d("dhana", "onconnected8:");
 		
 	}
 

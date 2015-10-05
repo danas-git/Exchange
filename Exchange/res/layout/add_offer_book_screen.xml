@@ -16,19 +16,24 @@
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" 
-                
-                    android:layout_margin="8dp">
+                android:layout_height="match_parent"
+                android:layout_margin="8dp" >
 
                 <ImageView
                     android:id="@+id/addbook_imageViewUpload"
-                    android:layout_width="300dp"
-                    android:layout_height="300dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_alignParentTop="true"
+                    android:layout_alignParentLeft="true"
+                    android:layout_alignParentRight="true"
+                    android:src="@drawable/imagebgaddbook" 
+                    android:adjustViewBounds="true"
                     android:layout_centerInParent="true"
-                    android:background="#ffffff"
-                    android:scaleType="fitXY"
-                    android:src="@android:drawable/ic_menu_gallery" />
+                    android:scaleType="fitCenter"/>
+           <!--     android:background="#ffffff" 
+           
+                    -->
+              <!--        -->
 
                 <ImageButton
                     android:id="@+id/addbook_imageButtonUpload"
@@ -125,8 +130,8 @@
                         android:id="@+id/addbook_radio_offertype"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal" 
-                        android:checkedButton="@+id/addbook_radio_exchange">
+                        android:checkedButton="@+id/addbook_radio_exchange"
+                        android:orientation="horizontal" >
 
                         <RadioButton
                             android:id="@+id/addbook_radio_exchange"

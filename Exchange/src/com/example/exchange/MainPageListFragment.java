@@ -219,6 +219,7 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 		// TODO Auto-generated method stub
 		super.onSaveInstanceState(outState);
 		outState.putParcelableArrayList("mainlistdata", adapterDataList);
+		
 	}
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
