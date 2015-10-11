@@ -1,13 +1,27 @@
 package com.example.exchange;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import javax.sql.CommonDataSource;
 
 import com.example.exchange.CommonDialogFragment.CommonDialogListener;
 import com.example.utilities.Connectivity;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResult;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.plus.People.LoadPeopleResult;
 import com.google.android.gms.plus.Plus;
 import com.google.android.gms.plus.model.people.Person;
@@ -19,11 +33,15 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.IntentSender.SendIntentException;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
+import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
@@ -34,6 +52,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
+import android.location.Address;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -41,7 +60,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 public class Exchange extends Activity implements ConnectionCallbacks,
-OnConnectionFailedListener,CommonDialogListener {
+OnConnectionFailedListener,CommonDialogListener, LocationListener,
+ResultCallback<LocationSettingsResult>{
 	private String[] msamples;
 	private DrawerLayout mDrawerLayout;
 	private ListView mDrawerListView;
@@ -60,10 +80,20 @@ OnConnectionFailedListener,CommonDialogListener {
 	private SharedPreferences sharedpreferences;
 	private Editor editor;
 	static ProgressDialog signInProgressDialog;
+	
+	private static Location mLastLocation;
+	private LocationRequest mLocationRequest;
+	private static double latitude;
+	private static double longitude;
+	protected LocationSettingsRequest mLocationSettingsRequest;
+	protected Boolean mRequestingLocationUpdates;
 
 	private static final int STATE_DEFAULT = 0;
     private static final int STATE_SIGN_IN = 1;
     private static final int STATE_IN_PROGRESS = 2;
+    static final int REQUEST_CODE_RECOVER_PLAY_SERVICES = 200;
+    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+
     static int mSignInProgress;
     private PendingIntent mSignInIntent;
     private int mSignInError;
@@ -75,6 +105,8 @@ OnConnectionFailedListener,CommonDialogListener {
 		Log.d("dhana", "ACTIVITY oncreate");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		mRequestingLocationUpdates = false;
 		
 		sharedpreferences=PreferenceManager.getDefaultSharedPreferences(this);
 		editor=sharedpreferences.edit();
@@ -134,28 +166,26 @@ OnConnectionFailedListener,CommonDialogListener {
 			fragmentTransaction.commit();
 		}
 		
-
-		googleApiClient = buildGoogleApiClient();
-	}
-	
-	private GoogleApiClient buildGoogleApiClient() {
-		// TODO Auto-generated method stub
-		GoogleApiClient.Builder builder = new GoogleApiClient.Builder(this)
-				.addConnectionCallbacks(this)
-				.addOnConnectionFailedListener(this)
-				.addApi(Plus.API, Plus.PlusOptions.builder().build())
-				.addScope(Plus.SCOPE_PLUS_LOGIN);
-		return builder.build();
+		if(checkGooglePlayServices())
+		{
+			googleApiClient = buildGoogleApiClient();
+		    createLocationRequest();
+		    buildLocationSettingsRequest();
+		}
 	}
 	
 	@Override
 	protected void onStart() {
 		// TODO Auto-generated method stub
 		super.onStart();
-		if(Connectivity.isConnected(this)){
+		if(Connectivity.isConnected(this) && (googleApiClient!=null)){
 			googleApiClient.connect();
-		}else{
+		}
+		else if (!Connectivity.isConnected(this)){
 			Toast.makeText(this, "Could not connect to the Network", Toast.LENGTH_LONG).show();
+		}
+		else{
+			Toast.makeText(this, "Could not access location", Toast.LENGTH_LONG).show();
 		}
 	}
 
@@ -169,6 +199,23 @@ OnConnectionFailedListener,CommonDialogListener {
 			}
 		}
 		
+	}
+	
+	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		super.onPause();
+		if(googleApiClient.isConnected()){
+			stopLocationUpdates();
+		}
+	}
+	@Override
+	protected void onResume() {
+		// TODO Auto-generated method stub
+		super.onResume();
+		if (googleApiClient.isConnected() && mRequestingLocationUpdates) {
+            startLocationUpdates();
+        }
 	}
 	@Override
 	public void onBackPressed() {
@@ -188,6 +235,7 @@ OnConnectionFailedListener,CommonDialogListener {
 		super.onPostCreate(savedInstanceState);
 		mDrawerToggle.syncState();
 	}
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -327,7 +375,41 @@ OnConnectionFailedListener,CommonDialogListener {
 		fragmentTransaction.commit();
 		
 	}
+	
+	private GoogleApiClient buildGoogleApiClient() {
+		// TODO Auto-generated method stub
+		GoogleApiClient.Builder builder = new GoogleApiClient.Builder(this)
+				.addConnectionCallbacks(this)
+				.addOnConnectionFailedListener(this)
+				.addApi(Plus.API, Plus.PlusOptions.builder().build())
+				.addApi(LocationServices.API)
+				.addScope(Plus.SCOPE_PLUS_LOGIN);
+		return builder.build();
+	}
+	
 
+	
+	private boolean checkGooglePlayServices(){
+		int checkGooglePlayServices = GooglePlayServicesUtil
+				.isGooglePlayServicesAvailable(this);
+			if (checkGooglePlayServices != ConnectionResult.SUCCESS) {
+				/*
+				* Google Play Services is missing or update is required
+				*  return code could be
+				* SUCCESS,
+				* SERVICE_MISSING, SERVICE_VERSION_UPDATE_REQUIRED,
+				* SERVICE_DISABLED, SERVICE_INVALID.
+				*/
+				GooglePlayServicesUtil.getErrorDialog(checkGooglePlayServices,
+				this, REQUEST_CODE_RECOVER_PLAY_SERVICES).show();
+
+				return false;
+			}
+
+			return true;
+
+	}
+	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		// TODO Auto-generated method stub
@@ -335,7 +417,30 @@ OnConnectionFailedListener,CommonDialogListener {
 
 		super.onActivityResult(requestCode, resultCode, data);
 		
+		
 		switch (requestCode) {
+		case REQUEST_CHECK_SETTINGS:
+            switch (resultCode) {
+                case Activity.RESULT_OK:
+                    startLocationUpdates();
+                    break;
+                case Activity.RESULT_CANCELED:
+                    break;
+            }
+            break;
+		case REQUEST_CODE_RECOVER_PLAY_SERVICES:
+			if (resultCode == RESULT_OK) {
+				// Make sure the app is not already connected or attempting to connect
+				if (!googleApiClient.isConnecting() &&
+						!googleApiClient.isConnected()) {
+					googleApiClient.connect();
+				}
+			} else if (resultCode == RESULT_CANCELED) {
+				Toast.makeText(this, "Google Play Services must be installed.",
+				Toast.LENGTH_SHORT).show();
+				finish();
+			}
+			break;
 		case 5:
 			if(resultCode == RESULT_OK){
 				Log.d("dhana","forcamera");
@@ -406,14 +511,41 @@ OnConnectionFailedListener,CommonDialogListener {
 		}
 	}
 	
-	
+	protected void startLocationUpdates() {
+        LocationServices.FusedLocationApi.requestLocationUpdates(
+        		googleApiClient,mLocationRequest,this).setResultCallback(new ResultCallback<Status>() {
+					
+					@Override
+					public void onResult(Status arg0) {
+						// TODO Auto-generated method stub
+						mRequestingLocationUpdates = true;
+					}
+				});
+    }
+	protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(20000);
+        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
 
+	
 	@Override
 	public void onConnected(Bundle connectionHint) {
 		// TODO Auto-generated method stub
 		
 		Log.d("dhana", "onconnected:");
+		mLastLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
+
+		if(mLastLocation != null){
+			latitude = mLastLocation.getLatitude();
+			longitude = mLastLocation.getLongitude();
+			String tempcity = getAddress(this);
 		
+			Toast.makeText(this, "Latitude:" + mLastLocation.getLatitude()+", Longitude:"+mLastLocation.getLongitude()+",City:"+tempcity,Toast.LENGTH_LONG).show();
+		}
+		checkLocationSettings();
+		//startLocationUpdates();
 		editor.putString("loggedin", "true");
 		editor.commit();
 
@@ -464,4 +596,88 @@ OnConnectionFailedListener,CommonDialogListener {
 		}
 		
 	}
+
+	@Override
+	public void onLocationChanged(Location location) {
+		// TODO Auto-generated method stub
+		mLastLocation = location;
+		latitude= mLastLocation.getLatitude();
+		longitude= mLastLocation.getLongitude();
+		Toast.makeText(this, "Update -> Latitude:" + latitude+", Longitude:"+longitude,Toast.LENGTH_LONG).show();
+		
+	}
+	
+	protected void stopLocationUpdates() {
+        if (googleApiClient != null) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(
+                    googleApiClient, this).setResultCallback(new ResultCallback<Status>() {
+
+						@Override
+						public void onResult(Status arg0) {
+							// TODO Auto-generated method stub
+							mRequestingLocationUpdates = false;
+						}
+					});
+        }
+    }
+	
+	public static String getAddress(Context c){
+		Geocoder geo=new Geocoder(c, Locale.getDefault());
+		 String city = null;
+
+		String mylocation;
+		if(Geocoder.isPresent())
+		{
+		 try {
+			 List<Address> addresses = geo.getFromLocation(latitude,longitude , 1);
+			 if (addresses != null && addresses.size() > 0) 
+			 {
+				 Address address = addresses.get(0);
+				 city = address.getLocality();
+		 	 }
+		  } catch (IOException e) {
+		    e.printStackTrace();
+		 }
+		
+		}
+		return city;
+	}
+
+	protected void buildLocationSettingsRequest() {
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        mLocationSettingsRequest = builder.build();
+    }
+	
+	protected void checkLocationSettings() {
+        PendingResult<LocationSettingsResult> result =
+                LocationServices.SettingsApi.checkLocationSettings(
+                        googleApiClient,
+                        mLocationSettingsRequest
+                );
+        result.setResultCallback(this);
+    }
+	@Override
+	public void onResult(LocationSettingsResult locationSettingsResult) {
+		// TODO Auto-generated method stub
+		final Status status = locationSettingsResult.getStatus();
+        switch (status.getStatusCode()) {
+            case LocationSettingsStatusCodes.SUCCESS:
+                startLocationUpdates();
+                break;
+            case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
+
+                try {
+                    // Show the dialog by calling startResolutionForResult(), and check the result
+                    // in onActivityResult().
+                    status.startResolutionForResult(this, REQUEST_CHECK_SETTINGS);
+                } catch (IntentSender.SendIntentException e) {
+                }
+                break;
+            case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
+                break;
+        }
+	}
+
+
 }

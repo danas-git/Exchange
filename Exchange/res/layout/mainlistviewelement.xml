@@ -10,6 +10,7 @@
         android:layout_height="96dp"
         android:layout_gravity="left"
         android:layout_weight="1"
+        android:scaleType="centerCrop"
         android:src="@drawable/sample_2" />
 
     <LinearLayout

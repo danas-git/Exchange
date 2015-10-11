@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import com.example.dataobjects.Offer;
 import com.example.utilities.BitmapUtilities;
+import com.example.utilities.Connectivity;
 import com.example.utilities.UploadOfferToServer;
 
 import android.app.Fragment;
@@ -111,7 +112,6 @@ public class AddBookOfferFragment extends Fragment {
 				outputFileUri = Uri.parse(imageuri);
 			}
 		}
-		
 		bookNameText = (TextView) fragmentView.findViewById(R.id.addbook_book_name);
 		imageView = (ImageView) fragmentView.findViewById(R.id.addbook_imageViewUpload);
 		cameraImageButton = (ImageButton) fragmentView.findViewById(R.id.addbook_imageButtonUpload);
@@ -126,13 +126,22 @@ public class AddBookOfferFragment extends Fragment {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				Bitmap uploadBitmap = ((BitmapDrawable) imageView.getDrawable()).getBitmap();
-				String uploadbookName = bookNameText.getText().toString();
-				bookOffer.setName(uploadbookName);
-				bookOffer.setBitmap(uploadBitmap);
-				Log.d("dhana", "upload book name");
-				UploadOfferToServer upload = new UploadOfferToServer(bookOffer, getActivity());
-				upload.execute(urlAddOffer);
+				if(Connectivity.isConnected(getActivity())){
+					Bitmap uploadBitmap = ((BitmapDrawable) imageView.getDrawable()).getBitmap();
+					String uploadbookName = bookNameText.getText().toString();
+					bookOffer.setName(uploadbookName);
+					bookOffer.setBitmap(uploadBitmap);
+					Log.d("dhana", "upload book name");
+					UploadOfferToServer upload = new UploadOfferToServer(bookOffer, getActivity());
+					upload.execute(urlAddOffer);
+
+					String tempcity2 = Exchange.getAddress(getActivity());
+					Toast.makeText(getActivity(), "City:"+tempcity2, Toast.LENGTH_SHORT).show();
+				}else{
+					Toast.makeText(getActivity(), "Could not connect to the Network", Toast.LENGTH_LONG).show();
+				}
+			
+
 			}
 		});
 			
