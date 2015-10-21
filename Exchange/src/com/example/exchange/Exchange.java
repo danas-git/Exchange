@@ -8,6 +8,7 @@ import javax.sql.CommonDataSource;
 
 import com.example.exchange.CommonDialogFragment.CommonDialogListener;
 import com.example.utilities.Connectivity;
+import com.example.utilities.GetReverseGeoCoding;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -83,8 +84,8 @@ ResultCallback<LocationSettingsResult>{
 	
 	private static Location mLastLocation;
 	private LocationRequest mLocationRequest;
-	private static double latitude;
-	private static double longitude;
+	static double latitude;
+    static double longitude;
 	protected LocationSettingsRequest mLocationSettingsRequest;
 	protected Boolean mRequestingLocationUpdates;
 
@@ -168,9 +169,16 @@ ResultCallback<LocationSettingsResult>{
 		
 		if(checkGooglePlayServices())
 		{
+			/*build google client for google services*/
 			googleApiClient = buildGoogleApiClient();
+			
+
+			/*Create location request to be used with fusedlocationapi*/
 		    createLocationRequest();
+
+		    /*build setting request for use with checklocationsetting*/
 		    buildLocationSettingsRequest();
+		    
 		}
 	}
 	
@@ -420,6 +428,7 @@ ResultCallback<LocationSettingsResult>{
 		
 		switch (requestCode) {
 		case REQUEST_CHECK_SETTINGS:
+			/* from check for location settings*/
             switch (resultCode) {
                 case Activity.RESULT_OK:
                     startLocationUpdates();
@@ -429,6 +438,7 @@ ResultCallback<LocationSettingsResult>{
             }
             break;
 		case REQUEST_CODE_RECOVER_PLAY_SERVICES:
+			/*from check for google play services availability */
 			if (resultCode == RESULT_OK) {
 				// Make sure the app is not already connected or attempting to connect
 				if (!googleApiClient.isConnecting() &&
@@ -442,6 +452,9 @@ ResultCallback<LocationSettingsResult>{
 			}
 			break;
 		case 5:
+			/* from camera access for adding picture. 
+			 * This would be handled in corresponding fragment
+			 */
 			if(resultCode == RESULT_OK){
 				Log.d("dhana","forcamera");
 				break;
@@ -524,8 +537,8 @@ ResultCallback<LocationSettingsResult>{
     }
 	protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(20000);
-        mLocationRequest.setFastestInterval(5000);
+        mLocationRequest.setInterval(200000);
+        mLocationRequest.setFastestInterval(50000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -540,7 +553,25 @@ ResultCallback<LocationSettingsResult>{
 		if(mLastLocation != null){
 			latitude = mLastLocation.getLatitude();
 			longitude = mLastLocation.getLongitude();
-			String tempcity = getAddress(this);
+			editor.putString("latitude", String.valueOf(latitude));
+			editor.putString("longitude", String.valueOf(longitude));
+			editor.commit();
+			GetReverseGeoCoding getGeoCoding = new GetReverseGeoCoding(latitude, longitude);
+			Thread thread = new Thread();
+			try {
+				thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			String tempcity =getGeoCoding.getCity();
+			
+			if(tempcity==null){
+				tempcity = sharedpreferences.getString("latestlocationcity", null);
+			}else{
+				editor.putString("latestlocationcity", tempcity);
+				editor.commit();
+			}
 		
 			Toast.makeText(this, "Latitude:" + mLastLocation.getLatitude()+", Longitude:"+mLastLocation.getLongitude()+",City:"+tempcity,Toast.LENGTH_LONG).show();
 		}
@@ -600,10 +631,32 @@ ResultCallback<LocationSettingsResult>{
 	@Override
 	public void onLocationChanged(Location location) {
 		// TODO Auto-generated method stub
+		String tempcity;
 		mLastLocation = location;
 		latitude= mLastLocation.getLatitude();
 		longitude= mLastLocation.getLongitude();
-		Toast.makeText(this, "Update -> Latitude:" + latitude+", Longitude:"+longitude,Toast.LENGTH_LONG).show();
+
+		editor.putString("latitude", String.valueOf(latitude));
+		editor.putString("longitude", String.valueOf(longitude));
+		editor.commit();
+		
+		if(Connectivity.isConnected(this)){
+			GetReverseGeoCoding getGeoCoding = new GetReverseGeoCoding(latitude, longitude);
+			Thread thread = new Thread();
+			try {
+				thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			tempcity =getGeoCoding.getCity()+getGeoCoding.getAddress1()+getGeoCoding.getAddress2()
+			+getGeoCoding.getCountry()+getGeoCoding.getCounty()+getGeoCoding.getPIN()+getGeoCoding.getState();
+			//tempcity=getAddress(this);
+			//Log.d("dhana", "from connected on change location "+tempcity);
+		}else{
+			tempcity = sharedpreferences.getString("latestlocationcity", null);
+		}
+		Toast.makeText(this, "Update -> Latitude:" + latitude+", Longitude:"+longitude+"City:"+tempcity,Toast.LENGTH_LONG).show();
 		
 	}
 	
@@ -629,11 +682,19 @@ ResultCallback<LocationSettingsResult>{
 		if(Geocoder.isPresent())
 		{
 		 try {
-			 List<Address> addresses = geo.getFromLocation(latitude,longitude , 1);
-			 if (addresses != null && addresses.size() > 0) 
+			 Log.d("dhana", "latidudeaddress:"+latitude+"longitudeaddress:"+longitude);
+			 List<Address> addresses = geo.getFromLocation(latitude,longitude , 10);
+			 
+			 if (addresses.size() > 0) 
 			 {
-				 Address address = addresses.get(0);
-				 city = address.getLocality();
+				 for (int i=0;i<addresses.size();i++){
+				 Address address = addresses.get(i);
+				 city = address.getLocality()+address.getAddressLine(i)+address.getCountryName();
+				 if(city!=null){
+					 break;
+				 }
+				 }
+				 Log.d("dhana", "city:"+city);
 		 	 }
 		  } catch (IOException e) {
 		    e.printStackTrace();

@@ -13,10 +13,12 @@ import com.example.dataobjects.Offer;
 import com.example.utilities.BitmapUtilities;
 import com.example.utilities.Connectivity;
 import com.example.utilities.UploadOfferToServer;
+import com.example.utilities.GetReverseGeoCoding;
 
 import android.app.Fragment;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
@@ -43,6 +45,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.preference.PreferenceManager;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+
 public class AddBookOfferFragment extends Fragment {
 	
 	private View fragmentView;
@@ -54,7 +60,11 @@ public class AddBookOfferFragment extends Fragment {
 	Uri outputFileUri;
 	String bitmapPath;
 	Bitmap rotationUpdatedBitmap;
+	
 	Offer bookOffer = new Offer();
+
+	private SharedPreferences sharedpreferences;
+	private Editor editor;
 	private static final String urlAddOffer = "http://www.danas.comeze.com/androidexchange/addoffer.php";
 	
 	@Override
@@ -62,6 +72,10 @@ public class AddBookOfferFragment extends Fragment {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
 		setHasOptionsMenu(true);
+		
+		/*Initialize to shared preferences of the activity */
+		sharedpreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+		editor = sharedpreferences.edit();
 		Log.d("dhana", "oncreateaddbook");
 	}
 	@Override
@@ -87,6 +101,8 @@ public class AddBookOfferFragment extends Fragment {
 		Log.d("dhana", "insideonresume of fragment");
 		BitmapFactory.Options options = new BitmapFactory.Options();
 		options.inSampleSize=8;
+		
+		/* On orientation change to reload the bitmap */
 		if(bitmapPath !=null){
 
 			Log.d("dhana","came to onresume uri not null");
@@ -131,11 +147,19 @@ public class AddBookOfferFragment extends Fragment {
 					String uploadbookName = bookNameText.getText().toString();
 					bookOffer.setName(uploadbookName);
 					bookOffer.setBitmap(uploadBitmap);
+					bookOffer.setLatitude(Exchange.latitude);
+					bookOffer.setLongitude(Exchange.longitude);
 					Log.d("dhana", "upload book name");
 					UploadOfferToServer upload = new UploadOfferToServer(bookOffer, getActivity());
-					upload.execute(urlAddOffer);
-
-					String tempcity2 = Exchange.getAddress(getActivity());
+					upload.execute(urlAddOffer); 
+					Log.d("dhana", "shared check"+sharedpreferences.getString("latestlocationcity", null));
+					String tempcity2 = new GetReverseGeoCoding(Exchange.latitude, Exchange.longitude).getCity();
+					if(tempcity2!=null && tempcity2.length()>0){
+						editor.putString("latestlocationcity", tempcity2);
+						editor.commit();
+					}else{
+						tempcity2 = sharedpreferences.getString("latestlocationcity", null);
+					}
 					Toast.makeText(getActivity(), "City:"+tempcity2, Toast.LENGTH_SHORT).show();
 				}else{
 					Toast.makeText(getActivity(), "Could not connect to the Network", Toast.LENGTH_LONG).show();
@@ -211,6 +235,8 @@ public class AddBookOfferFragment extends Fragment {
 		// TODO Auto-generated method stub
 		super.onActivityResult(requestCode, resultCode, data);
 		Log.d("dhana","came to fragment camera result" + requestCode);
+		
+		/*check if the data is from storage */
 		if (data !=null){
 			Log.d("dhana", "inside activityresult fragment data null");
 			String action = data.getAction();
@@ -235,6 +261,7 @@ public class AddBookOfferFragment extends Fragment {
 			Log.d("dhana","came to fragment camera result not null" + action);
 			
 		}else{
+			/*the data come from camera */
 			Log.d("dhana", "inside activityresult fragment null");
 			Uri selectedImageURI;
 			selectedImageURI = outputFileUri;
@@ -261,6 +288,9 @@ public class AddBookOfferFragment extends Fragment {
 		Log.d("dhana","came to fragment camera result end");
 	}
 	
+	/* For some devices when the image is rotated due to configuration setting
+	 * this function will be used to find and re-rotate the bitmap
+	 */
 	public Bitmap rotateBitmap(Bitmap bitmap){
 		ExifInterface exif = null;
 		try{

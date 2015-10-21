@@ -25,11 +25,17 @@ import android.provider.Browser.BookmarkColumns;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
 
+/*
+ * This Class is used to upload the offer to the Serve.
+ * The details of the offer are stored in Json and sent to the webserver
+ */
 public class UploadOfferToServer extends AsyncTask<String, String, String>{
 	Offer bookupload = new Offer();
 	String encodedBitmapString;
 	String name;
 	String jsonInputString;
+	double latitude;
+	double longitude;
 	
 	private String targetUrl;
 	URL urlToConnect;
@@ -37,6 +43,7 @@ public class UploadOfferToServer extends AsyncTask<String, String, String>{
 	ProgressDialog dialog;
 	Context c;
 
+	/*Constructor to set the context and the Offer object passed from the calling function */
 	public UploadOfferToServer(Offer bookupload, Context c) {
 		// TODO Auto-generated constructor stub
 		this.bookupload = bookupload;
@@ -58,11 +65,16 @@ public class UploadOfferToServer extends AsyncTask<String, String, String>{
 		// TODO Auto-generated method stub
 		encodedBitmapString=BitmapUtilities.BitMapToString(bookupload.getBitmap());
 		name = bookupload.getName();
+		latitude = bookupload.getLatitude();
+		longitude = bookupload.getLongitude();
 		
+		Log.d("dhana", "all json values"+name+latitude+longitude);
 		JSONObject jsoninput = new JSONObject();
 		try {
 			jsoninput.put("bitmap", encodedBitmapString);
 			jsoninput.put("name", name);
+			jsoninput.put("latitude", latitude);
+			jsoninput.put("longitude", longitude);
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -119,6 +131,8 @@ public class UploadOfferToServer extends AsyncTask<String, String, String>{
 		if(dialog.isShowing()){
 			dialog.dismiss();
 		}
+		
+		
 		final Activity activity = (Activity) c;
 		android.app.FragmentManager fragmentManager = activity.getFragmentManager();
 		FragmentTransaction fragmentTransaction=fragmentManager.beginTransaction();

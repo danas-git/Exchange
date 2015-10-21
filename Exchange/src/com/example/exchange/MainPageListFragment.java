@@ -36,6 +36,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,6 +51,8 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 	ArrayList<adapterdata> adapterDataList;
 	GetRecordsFromWeb getRecordsFromWeb;
 	private MenuItem menuitem;
+	SeekBar radiusBar;
+	TextView radiusTextView;
 	int localPage=1;
 	String EMPTY[] ={};
 	ListView ls;
@@ -63,7 +66,8 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 	public void onCreate(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
-
+		sharedpreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+		editor = sharedpreferences.edit();
 		adapterDataList=new ArrayList<adapterdata>();
 	}
 	
@@ -110,6 +114,10 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 		JSONObject jsoninput = new JSONObject();
 		try {
 			jsoninput.put("page", String.valueOf(localPage));
+			jsoninput.put("latitude",sharedpreferences.getString("latitude", "0"));
+			jsoninput.put("longitude",sharedpreferences.getString("longitude", "0"));
+			jsoninput.put("radius", sharedpreferences.getInt("radius", 0));
+			
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -142,6 +150,9 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 			JSONObject jsoninput = new JSONObject();
 			try {
 				jsoninput.put("page", String.valueOf(localPage));
+				jsoninput.put("latitude",Exchange.latitude);
+				jsoninput.put("longitude", Exchange.longitude);
+				jsoninput.put("radius", sharedpreferences.getInt("radius", 0));
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -188,6 +199,8 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 	}
 		
 	public void parseAndNotifyAdapter(String response){
+		
+		Log.d("dhana", "response after distance"+response);
 		JSONObject jsonObjectResponse;
 		
 		try {
@@ -200,6 +213,13 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 				
 				adapterData.bookName=jsonObjectResponse.getString("bookname");
 				adapterData.imageurl=jsonObjectResponse.getString("imageurl");
+				Log.d("dhana", "Distance="+jsonObjectResponse.getInt("distance"));
+				if((jsonObjectResponse.getInt("distance")>0)){
+					adapterData.distance=jsonObjectResponse.getInt("distance");
+				}
+				else{
+					adapterData.distance=1;
+				}
 				adapterDataList.add(adapterData);
 				
 			}
@@ -228,12 +248,60 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 		mainListAdapter = new MainListAdapter(getActivity());
 		setListAdapter(mainListAdapter);
 		getListView().setOnItemClickListener(this);
+		radiusBar = (SeekBar) fragmentview.findViewById(R.id.seekBar1);
+		radiusBar.setProgress(sharedpreferences.getInt("radius", 0));
+		radiusTextView=(TextView) fragmentview.findViewById(R.id.seekbarradiustext);
+		if(radiusBar.getProgress() == 0){
+			radiusTextView.setText("Radius: (All)");
+		}else{
+			radiusTextView.setText("Radius: ("+radiusBar.getProgress()+")Km");
+		}
+		radiusBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			int progresschanged=0;
+			
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				// TODO Auto-generated method stub
+				editor.putInt("radius", progresschanged);
+				editor.commit();
+				localPage=1;
+				if(Connectivity.isConnected(getActivity())){
+				adapterDataList.clear();
+				mainListAdapter= new MainListAdapter(getActivity());
+				setListAdapter(mainListAdapter);
+				loadNewData(ls);
+				}
+				else{
+					Toast.makeText(getActivity(), "Could not connect to the Network", Toast.LENGTH_LONG).show();
+				}
+				
+				
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				// TODO Auto-generated method stub
+				if(progress==0){
+					radiusTextView.setText("Radius: (All)");
+				}else{
+					radiusTextView.setText("Radius: ("+progress+")Km");
+				}
+				progresschanged=progress;
+			}
+		});
 	}
 
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 		// TODO Auto-generated method stub
-		
+		adapterdata onclickadapter = adapterDataList.get(position);
+		Toast.makeText(getActivity(), "Clicked"+onclickadapter.bookName, Toast.LENGTH_SHORT).show();
 	}
 
 	@Override
@@ -291,8 +359,10 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 			
 			TextView bookNameText= (TextView) row.findViewById(R.id.mainlistviewname);
 			ImageView imageView = (ImageView) row.findViewById(R.id.mainlistimageView);
+			TextView radiusText=(TextView) row.findViewById(R.id.mainlistviewradius);
 			imageLoader.DisplayImage(viewData.imageurl, loader, imageView);
 			bookNameText.setText(viewData.bookName);
+			radiusText.setText("Within "+viewData.distance+" Km");
 			return row;
 
 		}
@@ -313,6 +383,8 @@ public class MainPageListFragment extends ListFragment implements GetRecords,Swi
 class adapterdata implements Parcelable{
 	String bookName;
 	String imageurl;
+	int distance;
+	
 	@Override
 	public int describeContents() {
 		// TODO Auto-generated method stub
@@ -326,6 +398,7 @@ class adapterdata implements Parcelable{
 		// TODO Auto-generated constructor stub
 		bookName=in.readString();
 		imageurl=in.readString();
+		distance=in.readInt();
 	}
 	
 	public static final Parcelable.Creator<adapterdata> CREATOR
@@ -342,6 +415,7 @@ public adapterdata[] newArray(int size) {
 	public void writeToParcel(Parcel dest, int flags) {
 		dest.writeString(bookName);
 		dest.writeString(imageurl);
+		dest.writeInt(distance);
 		// TODO Auto-generated method stub
 		
 	}
